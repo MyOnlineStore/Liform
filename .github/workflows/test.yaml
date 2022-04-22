@@ -1,0 +1,41 @@
+name: Test
+
+on: push
+
+jobs:
+    test:
+        name: Test
+
+        strategy:
+            fail-fast: false
+            matrix:
+                php-version: [ '7.4', '8.0', '8.1' ]
+
+        runs-on: ubuntu-latest
+
+        steps:
+            # Setup
+            -   name: Checkout
+                uses: actions/checkout@v2
+            -   name: Setup PHP
+                uses: shivammathur/setup-php@v2
+                with:
+                    php-version: ${{ matrix.php-version }}
+                    coverage: pcov
+                    tools: cs2pr
+                env:
+                    COMPOSER_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            -   name: Cache Dependencies
+                uses: actions/cache@v1
+                with:
+                    path: ~/.composer/cache
+                    key: php-${{ matrix.php-version }}-composer-${{ hashFiles('**/composer.json') }}
+                    restore-keys: |
+                        php-${{ matrix.php-version }}-composer-
+            -   name: Install Dependencies
+                run: composer install --no-interaction --no-ansi --no-progress
+
+            # Test
+            -   run: vendor/bin/phpunit
+            -   run: vendor/bin/phpcs -n
